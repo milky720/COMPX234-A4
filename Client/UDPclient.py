@@ -1,6 +1,9 @@
 import socket
 import sys
 
+def send_and_receive(socket, address, message, max_attempts=5):
+    # Implemented later
+    pass
 
 def main():
     if len(sys.argv) != 4:
@@ -15,6 +18,29 @@ def main():
 
     print(f"Client connecting to {hostname}:{port} with file list {filelist}")
 
+    try:
+        with open(filelist, 'r') as f:
+            files_to_download = [line.strip() for line in f if line.strip()]
+    except FileNotFoundError:
+        print(f"Error: File list {filelist} not found")
+        return
+
+    server_address = (hostname, port)
+
+    for filename in files_to_download:
+        print(f"Requesting file: {filename}")
+        download_file(client_socket, server_address, filename)
+
+
+def download_file(socket, server_address, filename):
+    request = f"DOWNLOAD {filename}"
+    response = send_and_receive(socket, server_address, request)
+
+    if not response:
+        print(f"Failed to get response for {filename}")
+        return
+
+    print(f"Server response: {response}")
 
 if __name__ == "__main__":
     main()
