@@ -2,8 +2,23 @@ import socket
 import sys
 
 def send_and_receive(socket, address, message, max_attempts=5):
-    # Implemented later
-    pass
+    current_timeout = 1000  # The initial timeout is 1 second
+    attempts = 0
+
+    while attempts < max_attempts:
+        try:
+            socket.sendto(message.encode(), address)
+            socket.settimeout(current_timeout / 1000)
+
+            response, _ = socket.recvfrom(4096)
+            return response.decode()
+
+        except socket.timeout:
+            attempts += 1
+            current_timeout *= 2
+            print(f"Timeout, attempt {attempts} of {max_attempts}, new timeout: {current_timeout}ms")
+
+    return None
 
 def main():
     if len(sys.argv) != 4:
