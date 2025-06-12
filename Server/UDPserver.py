@@ -2,10 +2,38 @@ import socket
 import sys
 import threading
 import random
+import base64
 
 def handle_file_transmission(client_socket, filename, client_address):
-    # Implemented later
-    pass
+    try:
+        with open(filename, 'rb') as f:
+            while True:
+                data, _ = client_socket.recvfrom(1024)
+                request = data.decode().strip()
+                parts = request.split(' ')
+
+                if parts[0] != "FILE" or parts[1] != filename:
+                    continue
+
+                if parts[2] == "GET":
+                    # Handle data requests
+                    start = int(parts[4])
+                    end = int(parts[6])
+                    f.seek(start)
+                    chunk = f.read(end - start + 1)
+
+                    encoded = base64.b64encode(chunk).decode()
+                    response = f"FILE {filename} OK START {start} END {end} DATA {encoded}"
+                    client_socket.sendto(response.encode(), client_address)
+
+                elif parts[2] == "CLOSE":
+                    # Handle closure requests
+                    response = f"FILE {filename} CLOSE_OK"
+                    client_socket.sendto(response.encode(), client_address)
+                    break
+
+    finally:
+        client_socket.close()
 
 def handle_download_request(welcome_socket, data, client_address):
     request = data.decode().strip()
