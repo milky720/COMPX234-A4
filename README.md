@@ -1,6 +1,11 @@
 # COMPX234-A4
 20233006400 MiaoKeyan‘s Assignment4
 
+This program implements a client-server file transfer system using UDP with reliability mechanisms. 
+The server handles multiple clients concurrently via threads, assigning each a unique port for file transmission. 
+The client requests files sequentially, using a stop-and-wait protocol with timeout and retransmission to ensure reliable delivery. 
+Files are transferred in chunks, with Base64 encoding for data integrity.
+
 How to test my networked system? ^_^
 // Start the server
 cd Server
