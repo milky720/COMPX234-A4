@@ -65,8 +65,8 @@ def download_file(socket, server_address, filename):
         return
 
     # Parse OK response
-    file_size = int(parts[4])
-    data_port = int(parts[6])
+    file_size = int(parts[3])
+    data_port = int(parts[5])
 
     # Create local file
     try:
