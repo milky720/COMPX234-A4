@@ -5,6 +5,8 @@ import random
 import base64
 
 def handle_file_transmission(client_socket, filename, client_address):
+    print(f"[{client_address}] Starting file transmission：{filename}")
+
     try:
         with open(filename, 'rb') as f:
             while True:
@@ -30,6 +32,7 @@ def handle_file_transmission(client_socket, filename, client_address):
                     # Handle closure requests
                     response = f"FILE {filename} CLOSE_OK"
                     client_socket.sendto(response.encode(), client_address)
+                    print(f"[{client_address}] File transmission complete：{filename}")
                     break
 
     finally:
@@ -43,6 +46,8 @@ def handle_download_request(welcome_socket, data, client_address):
         return  # Ignore invalid requests
 
     filename = parts[1]
+    print(f"[{client_address}] Requested to download：{filename}")
+
     try:
         with open(filename, 'rb') as f:
             f.seek(0, 2)
@@ -59,6 +64,8 @@ def handle_download_request(welcome_socket, data, client_address):
         response = f"OK {filename} SIZE {file_size} PORT {new_port}"
         welcome_socket.sendto(response.encode(), client_address)
 
+        print(f"[{client_address}] Assigned port {new_port} for {filename} ({file_size} bytes)")
+
         # Start new thread to handle file transmission
         threading.Thread(target=handle_file_transmission,
                          args=(client_socket, filename, client_address)).start()
@@ -66,6 +73,7 @@ def handle_download_request(welcome_socket, data, client_address):
     except FileNotFoundError:
         response = f"ERR {filename} NOT_FOUND"
         welcome_socket.sendto(response.encode(), client_address)
+        print(f"[{client_address}] File not found: {filename}")
 
 def main():
     if len(sys.argv) != 2:
