@@ -1,5 +1,7 @@
 import socket
 import sys
+import base64
+import os
 
 def send_and_receive(socket, address, message, max_attempts=5):
     current_timeout = 1000  # The initial timeout is 1 second
@@ -48,6 +50,7 @@ def main():
 
 
 def download_file(socket, server_address, filename):
+    # Send download request
     request = f"DOWNLOAD {filename}"
     response = send_and_receive(socket, server_address, request)
 
@@ -55,7 +58,66 @@ def download_file(socket, server_address, filename):
         print(f"Failed to get response for {filename}")
         return
 
-    print(f"Server response: {response}")
+    # Parse server response
+    parts = response.split(' ')
+    if parts[0] == "ERR":
+        print(f"Error: {response}")
+        return
+
+    # Parse OK response
+    file_size = int(parts[4])
+    data_port = int(parts[6])
+
+    # Create local file
+    try:
+        with open(filename, 'wb') as f:
+            print(f"Downloading {filename} ({file_size} bytes): ", end='', flush=True)
+
+            # Download file blocks
+            downloaded = 0
+            block_size = 1000  # Block size (matches server)
+            data_address = (server_address[0], data_port)
+
+            while downloaded < file_size:
+                # Calculate current block range
+                start = downloaded
+                end = min(downloaded + block_size - 1, file_size - 1)
+
+                # Request data block
+                request = f"FILE {filename} GET START {start} END {end}"
+                response = send_and_receive(socket, data_address, request)
+
+                if not response:
+                    print("\nFailed to receive data block")
+                    return
+
+                # Process data response
+                resp_parts = response.split(' DATA ')
+                if len(resp_parts) != 2:
+                    print("\nInvalid data response")
+                    return
+
+                # Decode and write to file
+                data_part = resp_parts[1]
+                binary_data = base64.b64decode(data_part)
+                f.seek(start)
+                f.write(binary_data)
+
+                downloaded += len(binary_data)
+                print("*", end='', flush=True)
+
+            # Send close request
+            request = f"FILE {filename} CLOSE"
+            response = send_and_receive(socket, data_address, request)
+
+            # Verify close confirmation
+            if response and response.startswith(f"FILE {filename} CLOSE_OK"):
+                print(f"\nSuccessfully downloaded {filename}")
+            else:
+                print(f"\nWarning: Close confirmation not received for {filename}")
+
+    except IOError as e:
+        print(f"\nError writing file {filename}: {e}")
 
 if __name__ == "__main__":
     main()
